@@ -4,11 +4,11 @@ from setuptools import find_packages, setup
 
 setup(
     name="src",
-    version="0.0.1",
-    description="Describe Your Cool Project",
-    author="",
-    author_email="",
-    url="https://github.com/user/project",
+    version="0.1.1",
+    description="Segmentation of adult gliomas post-treatment using MONAI and U-Net with PyTorch Lightning and Hydra",
+    author="Marcel Musialek",
+    author_email="mnem12321@gmail.com",
+    url="https://github.com/EverScaleNet/ES-Segmentation-Adult-Glioma",
     install_requires=["lightning", "hydra-core"],
     packages=find_packages(),
     # use this to customize global commands available in the terminal after installing the package

@@ -5,12 +5,6 @@
 # - conda allows for installing packages without requiring certain compilers or
 #   libraries to be available in the system, since it installs precompiled binaries
 
-name: myenv
-
-channels:
-  - pytorch
-  - conda-forge
-  - defaults
 
 # it is strongly recommended to specify versions of packages installed through conda
 # to avoid situation when version-unspecified packages install their latest major
@@ -19,6 +13,15 @@ channels:
 # current approach below keeps the dependencies in the same major versions across all
 # users, but allows for different minor and patch versions of packages where backwards
 # compatibility is usually guaranteed
+
+name: glioma-segmentation
+
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+
 
 dependencies:
   - python=3.10
@@ -30,16 +33,15 @@ dependencies:
   - rich=13.*
   - pre-commit=3.*
   - pytest=7.*
-
-  # --------- loggers --------- #
-  # - wandb
-  # - neptune-client
-  # - mlflow
-  # - comet-ml
-  # - aim>=3.16.2 # no lower than 3.16.2, see https://github.com/aimhubio/aim/issues/2550
-
+  - numpy
+  - pandas
+  - scikit-learn
+  - cudatoolkit=11.1
   - pip>=23
   - pip:
+      - monai
+      - wandb
       - hydra-optuna-sweeper
       - hydra-colorlog
       - rootutils
+
