@@ -76,7 +76,7 @@ wandb is used for tracking experiments, visualizing results, and managing hyperp
 
 ## Acknowledgements
 
-This project was developed using the Lightning-Hydra-Template and data from the BraTS 2024 Challenge.
+This project was developed using the Lightning-Hydra-Template and data comes from the BraTS 2024 Challenge.
 
 ## Contact
 
