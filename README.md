@@ -51,7 +51,7 @@ ES-Segmentation-Adult-Glioma/
 
 2. **Create and activate the Conda environment:**
     ```bash
-    conda env create -f environment.yml
+    conda create -n glioma-segmentation
     conda activate glioma-segmentation
     ```
 
