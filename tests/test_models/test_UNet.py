@@ -1,6 +1,6 @@
 import unittest
 import torch
-from src.models import UNet  # Import the model after its implementation
+from glioma_segmentation.models.UNet import UNet3D  # Import the model after its implementation
 
 class TestUNet(unittest.TestCase):
     """Tests for the UNet model."""
@@ -11,11 +11,11 @@ class TestUNet(unittest.TestCase):
         self.out_channels = 5
         self.input_shape = (1, self.in_channels, 182, 218, 182)
         self.output_shape = (1, self.out_channels, 182, 218, 182)
-        self.model = UNet(self.in_channels, self.out_channels)
+        self.model = UNet3D(self.in_channels, self.out_channels)
         
     def test_constructor(self):
         """Test if the constructor correctly initializes all layers of the model."""
-        self.assertIsInstance(self.model, UNet, "The model was not correctly initialized as a UNet instance.")
+        self.assertIsInstance(self.model, UNet3D, "The model was not correctly initialized as a UNet instance.")
     
     def test_forward_pass(self):
         """Test if the forward pass returns output with the expected shape."""
