@@ -3,9 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class DoubleConv3D(nn.Module):
-    """
-    Dwa kolejne bloki konwolucyjne 3D z ReLU.
-    """
     def __init__(self, in_channels, out_channels):
         super(DoubleConv3D, self).__init__()
         self.double_conv = nn.Sequential(
@@ -19,9 +16,6 @@ class DoubleConv3D(nn.Module):
         return self.double_conv(x)
 
 class Down3D(nn.Module):
-    """
-    Blok downsamplingowy 3D: max pooling + double conv.
-    """
     def __init__(self, in_channels, out_channels):
         super(Down3D, self).__init__()
         self.maxpool_conv = nn.Sequential(
@@ -33,9 +27,6 @@ class Down3D(nn.Module):
         return self.maxpool_conv(x)
 
 class Up3D(nn.Module):
-    """
-    Blok upsamplingowy 3D: upsampling + double conv.
-    """
     def __init__(self, in_channels, out_channels, trilinear=True):
         super(Up3D, self).__init__()
 
@@ -60,9 +51,6 @@ class Up3D(nn.Module):
         return self.conv(x)
 
 class OutConv3D(nn.Module):
-    """
-    Ostatnia warstwa konwolucyjna 3D.
-    """
     def __init__(self, in_channels, out_channels):
         super(OutConv3D, self).__init__()
         self.conv = nn.Conv3d(in_channels, out_channels, kernel_size=1)
