@@ -9,6 +9,9 @@ hydra-core==1.3.2
 hydra-colorlog==1.2.0
 hydra-optuna-sweeper==1.2.0
 
+# --------- data --------- #
+monai>=1.3.2   # medical imaging data handling
+
 # --------- loggers --------- #
 wandb>=0.10.32
 
@@ -17,4 +20,6 @@ rootutils       # standardizing the project root setup
 pre-commit      # hooks for applying linters on commit
 rich            # beautiful text formatting in terminal
 pytest          # tests
+
+
 

@@ -1,5 +1,5 @@
 import unittest
-from src.data.lightning_data_module import BrainTumorDataModule
+from glioma_segmentation.data.lightning_data_module import BrainTumorDataModule
 from pathlib import Path
 import torch
 
