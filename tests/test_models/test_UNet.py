@@ -11,6 +11,7 @@ class TestUNet(unittest.TestCase):
         self.out_channels = 5
         self.input_shape = (1, self.in_channels, 182, 218, 182)
         self.output_shape = (1, self.out_channels, 182, 218, 182)
+
         self.model = UNet(self.in_channels, self.out_channels)
         
     def test_constructor(self):
