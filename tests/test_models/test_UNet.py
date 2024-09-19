@@ -1,6 +1,6 @@
 import unittest
 import torch
-from glioma_segmentation.models import UNet  # Import the model after its implementation
+from src.models import UNet  # Import the model after its implementation
 
 class TestUNet(unittest.TestCase):
     """Tests for the UNet model."""
