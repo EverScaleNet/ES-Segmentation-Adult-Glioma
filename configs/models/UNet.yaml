@@ -1,5 +1,6 @@
 _target_: glioma_segmentation.models.unet.UNet3D
-in_channels: 1           # liczba kanałów wejściowych (np. dla obrazów MRI)
-out_channels: 3          # liczba kanałów wyjściowych (np. liczba klas)
-init_features: 32        # początkowa liczba filtrów
-lr: 1e-4                 # szybkość uczenia
+in_channels: 1
+out_channels: 3
+init_features: 32
+lr: 1e-4
+class_weights: [0.7377, 0.0254, 0.1474, 0.0896]  # Add the class weights tensor here

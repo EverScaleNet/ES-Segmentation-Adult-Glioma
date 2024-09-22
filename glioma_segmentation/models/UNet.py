@@ -5,9 +5,10 @@ import torch.nn.functional as F
 from .components.UNet_components import DoubleConv3D, Down3D, Up3D, OutConv3D
 
 class UNet3D(pl.LightningModule):
-    def __init__(self, in_channels, out_channels, init_features=32, lr=1e-4):
+    def __init__(self, in_channels, out_channels, init_features=32, lr=1e-4, class_weights=None):
         super(UNet3D, self).__init__()
         self.lr = lr
+        self.class_weights = class_weights
         
         self.encoder1 = DoubleConv3D(in_channels, init_features)
         self.pool1 = nn.MaxPool3d(2)
