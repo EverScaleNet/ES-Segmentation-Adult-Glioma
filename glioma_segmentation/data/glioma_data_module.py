@@ -26,12 +26,19 @@ class GliomaDataModule(L.LightningDataModule):
             self.val_dataset = self._create_dataset(val_data, self.val_transforms)
 
     def _prepare_data(self, data_dir):
+        ''' Load patient folders and files as tupples of 4 scans and a mask '''
         data = []
-        for root, _, files in os.walk(data_dir):
-            for file in files:
-                if file.endswith(".nii") or file.endswith(".nii.gz"):
-                    data.append(os.path.join(root, file))
-        return data
+
+        for patient in os.listdir(data_dir):
+            patient_path = os.path.join(data_dir, patient)
+            scans = []                    # Initialize the list of scans
+            mask = None                   # Initialize the mask
+            for file in os.listdir(patient_path):
+                if 'seg' in file:           # Load the mask
+                    mask = os.path.join(patient_path, file)
+                else:                       # Load the scans
+                    scans.append(os.path.join(patient_path, file))
+
 
     def _create_dataset(self, data, transforms):
         return Dataset(data=data, transform=transforms)
