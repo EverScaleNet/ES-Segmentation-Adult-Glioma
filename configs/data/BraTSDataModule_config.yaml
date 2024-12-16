@@ -2,5 +2,5 @@ data:
   data_dir: "data"
 
 loader:
-  batch_size: 4
-  num_workers: 4
+  batch_size: 2  # Reduced batch size to reduce memory usage
+  num_workers: 15  # Increased number of workers to speed up data loading

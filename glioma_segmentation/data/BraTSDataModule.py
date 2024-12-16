@@ -38,40 +38,39 @@ class BraTSDataModule(pl.LightningDataModule):
         # Create training data dictionaries
         train_data_dicts = []
         for patient_dir in train_patient_dirs:
-            seg_file = os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-seg.nii.gz")
+            base_name = os.path.basename(patient_dir)
+            seg_file = os.path.join(patient_dir, f"{base_name}-seg.nii.gz")
             image_files = [
-                os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t1c.nii.gz"),
-                os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t1n.nii.gz"),
-                os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t2f.nii.gz"),
-                os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t2w.nii.gz")
+                os.path.join(patient_dir, f"{base_name}-t1c.nii.gz"),
+                os.path.join(patient_dir, f"{base_name}-t1n.nii.gz"),
+                os.path.join(patient_dir, f"{base_name}-t2f.nii.gz"),
+                os.path.join(patient_dir, f"{base_name}-t2w.nii.gz")
             ]
             train_data_dicts.append({
-                "image": image_files,  # List of modality images
-                "label": seg_file      # Segmentation file
+                "image": image_files,
+                "label": seg_file
             })
 
-        # Assign data to attributes
         self.train_data = train_data_dicts
 
-        # Define transformations with padding
+        # Define training transformations
         self.train_transforms = Compose([
-            LoadImaged(keys=["image", "label"], image_only=False),
+            LoadImaged(keys=["image", "label"]),
             EnsureChannelFirstd(keys=["image", "label"]),
-            SpatialPadd(keys=["image", "label"], spatial_size=(182, 218, 182)),  # Adjusted padding to match scan shape
+            SpatialPadd(keys=["image", "label"], spatial_size=(182, 218, 182)),
             ScaleIntensityd(keys=["image"])
-            # Add any additional transformations here
         ])
 
-        # Correct the batch size for testing
         if stage == 'test' or stage is None:
             test_patient_dirs = sorted(glob.glob(os.path.join(self.data_dir, "test_data", "BraTS-GLI-*")))
             test_data_dicts = []
             for patient_dir in test_patient_dirs:
+                base_name = os.path.basename(patient_dir)
                 image_files = [
-                    os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t1c.nii.gz"),
-                    os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t1n.nii.gz"),
-                    os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t2f.nii.gz"),
-                    os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t2w.nii.gz")
+                    os.path.join(patient_dir, f"{base_name}-t1c.nii.gz"),
+                    os.path.join(patient_dir, f"{base_name}-t1n.nii.gz"),
+                    os.path.join(patient_dir, f"{base_name}-t2f.nii.gz"),
+                    os.path.join(patient_dir, f"{base_name}-t2w.nii.gz")
                 ]
                 test_data_dicts.append({
                     "image": image_files
@@ -79,11 +78,10 @@ class BraTSDataModule(pl.LightningDataModule):
             self.test_data = test_data_dicts
 
             self.test_transforms = Compose([
-                LoadImaged(keys=["image"], image_only=False),
+                LoadImaged(keys=["image"]),
                 EnsureChannelFirstd(keys=["image"]),
-                SpatialPadd(keys=["image"], spatial_size=(182, 218, 182)),  # Adjusted padding to match scan shape
+                SpatialPadd(keys=["image"], spatial_size=(182, 218, 182)),
                 ScaleIntensityd(keys=["image"])
-                # Add any additional transformations here
             ])
 
     def train_dataloader(self):
@@ -94,7 +92,29 @@ class BraTSDataModule(pl.LightningDataModule):
             DataLoader: DataLoader for training data.
         """
         train_dataset = Dataset(data=self.train_data, transform=self.train_transforms)
-        return DataLoader(train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
+        return DataLoader(
+            train_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=True,
+            persistent_workers=True
+        )
+
+    def val_dataloader(self):
+        """
+        Returns the validation DataLoader.
+
+        Returns:
+            DataLoader: DataLoader for validation data.
+        """
+        val_dataset = Dataset(data=self.val_data, transform=self.train_transforms)
+        return DataLoader(
+            val_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+            persistent_workers=True
+        )
 
     def test_dataloader(self):
         """
@@ -104,4 +124,10 @@ class BraTSDataModule(pl.LightningDataModule):
             DataLoader: DataLoader for test data.
         """
         test_dataset = Dataset(data=self.test_data, transform=self.test_transforms)
-        return DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False)
+        return DataLoader(
+            test_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+            persistent_workers=True
+        )

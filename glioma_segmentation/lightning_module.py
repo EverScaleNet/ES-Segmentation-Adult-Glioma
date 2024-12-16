@@ -15,15 +15,21 @@ class GliomaSegmentationModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
         outputs = self(images)
+        labels = labels.squeeze(1).long()  # Squeeze the channel dimension and convert to Long
+        print(f"Training Step - Outputs Shape: {outputs.shape}, Labels Shape: {labels.shape}")
+        print(f"Training Step - Labels Unique Values: {torch.unique(labels)}")
         loss = F.cross_entropy(outputs, labels)
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, batch_size=images.size(0))
         return loss
 
     def validation_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
         outputs = self(images)
+        labels = labels.squeeze(1).long()  # Squeeze the channel dimension and convert to Long
+        print(f"Validation Step - Outputs Shape: {outputs.shape}, Labels Shape: {labels.shape}")
+        print(f"Validation Step - Labels Unique Values: {torch.unique(labels)}")
         loss = F.cross_entropy(outputs, labels)
-        self.log("val_loss", loss)
+        self.log("val_loss", loss, batch_size=images.size(0))
         return loss
 
     def configure_optimizers(self):

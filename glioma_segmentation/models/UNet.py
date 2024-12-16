@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class UNet(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels=5):  # Set default out_channels to 5
         super(UNet, self).__init__()
         self.encoder1 = self.conv_block(in_channels, 64)
         self.encoder2 = self.conv_block(64, 128)

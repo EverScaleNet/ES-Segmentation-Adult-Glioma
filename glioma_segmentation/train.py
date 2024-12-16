@@ -1,9 +1,6 @@
-import pytorch_lightning 
+import os
+import pytorch_lightning
 import torch
-print("CUDA Available:", torch.cuda.is_available())
-print("CUDA Device Count:", torch.cuda.device_count())
-if torch.cuda.is_available():
-    print("CUDA Device Name:", torch.cuda.get_device_name(0))
 from glioma_segmentation.data.BraTSDataModule import BraTSDataModule
 from glioma_segmentation.lightning_module import GliomaSegmentationModule
 import hydra
@@ -12,13 +9,19 @@ from sklearn.model_selection import KFold
 import numpy as np
 
 if __name__ == '__main__':
+    # Set float32 matmul precision to utilize Tensor Cores
+    torch.set_float32_matmul_precision('high')
+
     # Initialize Hydra and compose the configuration
     with hydra.initialize(config_path="../configs/data", version_base=None):
         cfg = hydra.compose(config_name="BraTSDataModule_config")
 
     # Define the data module
     data_module = BraTSDataModule(cfg)
-    data_module.setup(stage='fit')  # Call setup to initialize train_data
+    data_module.setup(stage='fit')  # Initialize train_data
+
+    # Reduce batch size to reduce memory usage
+    data_module.batch_size = 2
 
     # Get the data and labels
     data = data_module.train_data
@@ -36,22 +39,29 @@ if __name__ == '__main__':
 
         # Update the data module with the new splits
         data_module.train_data = train_data
+        data_module.val_data = val_data
 
         # Define the model
         model = GliomaSegmentationModule(
             in_channels=4,
-            out_channels=4
+            out_channels=5  # Match the number of classes
         )
 
-        # Initialize the trainer
+        # Initialize the trainer with mixed precision training
         trainer = pytorch_lightning.Trainer(
             accelerator='gpu' if torch.cuda.is_available() else 'cpu',
             devices=1 if torch.cuda.is_available() else None,
             max_epochs=10,
+            precision='16-mixed',  # Enable mixed precision training
             enable_checkpointing=True,
             num_sanity_val_steps=1,
             log_every_n_steps=16,
+            enable_progress_bar=True,  # Enable progress bar
         )
 
         # Train the model
-        trainer.fit(model, data_module)
+        trainer.fit(
+            model,
+            train_dataloaders=data_module.train_dataloader(),
+            val_dataloaders=data_module.val_dataloader()
+        )
