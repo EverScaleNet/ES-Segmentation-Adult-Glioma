@@ -1,59 +1,37 @@
 import torch
-import pytorch_lightning as pl
-from torch import nn
+import torch.nn as nn
 import torch.nn.functional as F
-from .components.UNet_components import DoubleConv3D, Down3D, Up3D, OutConv3D
 
-class UNet3D(pl.LightningModule):
-    def __init__(self, in_channels, out_channels, init_features=32, lr=1e-4):
-        super(UNet3D, self).__init__()
-        self.lr = lr
-        
-        self.encoder1 = DoubleConv3D(in_channels, init_features)
-        self.pool1 = nn.MaxPool3d(2)
+class UNet(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(UNet, self).__init__()
+        self.encoder1 = self.conv_block(in_channels, 64)
+        self.encoder2 = self.conv_block(64, 128)
+        self.encoder3 = self.conv_block(128, 256)
+        self.encoder4 = self.conv_block(256, 512)
+        self.bottleneck = self.conv_block(512, 1024)
+        self.decoder4 = self.conv_block(1024 + 512, 512)
+        self.decoder3 = self.conv_block(512 + 256, 256)
+        self.decoder2 = self.conv_block(256 + 128, 128)
+        self.decoder1 = self.conv_block(128 + 64, 64)
+        self.final_layer = nn.Conv3d(64, out_channels, kernel_size=1)
 
-        self.encoder2 = Down3D(init_features, init_features * 2)
-        self.encoder3 = Down3D(init_features * 2, init_features * 4)
-        self.encoder4 = Down3D(init_features * 4, init_features * 8)
-
-        self.bottleneck = DoubleConv3D(init_features * 8, init_features * 16)
-
-        self.upconv4 = Up3D(init_features * 16, init_features * 8)
-        self.upconv3 = Up3D(init_features * 8, init_features * 4)
-        self.upconv2 = Up3D(init_features * 4, init_features * 2)
-        self.upconv1 = Up3D(init_features * 2, init_features)
-
-        self.out_conv = OutConv3D(init_features, out_channels)
+    def conv_block(self, in_channels, out_channels):
+        return nn.Sequential(
+            nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True)
+        )
 
     def forward(self, x):
         enc1 = self.encoder1(x)
-        enc2 = self.encoder2(self.pool1(enc1))
-        enc3 = self.encoder3(enc2)
-        enc4 = self.encoder4(enc3)
-
-        bottleneck = self.bottleneck(enc4)
-
-        dec4 = self.upconv4(bottleneck, enc4)
-        dec3 = self.upconv3(dec4, enc3)
-        dec2 = self.upconv2(dec3, enc2)
-        dec1 = self.upconv1(dec2, enc1)
-
-        return self.out_conv(dec1)
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        return optimizer
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
-        self.log('train_loss', loss)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        val_loss = F.cross_entropy(y_hat, y)
-        self.log('val_loss', val_loss)
-        return val_loss
+        enc2 = self.encoder2(F.max_pool3d(enc1, kernel_size=2, stride=2))
+        enc3 = self.encoder3(F.max_pool3d(enc2, kernel_size=2, stride=2))
+        enc4 = self.encoder4(F.max_pool3d(enc3, kernel_size=2, stride=2))
+        bottleneck = self.bottleneck(F.max_pool3d(enc4, kernel_size=2, stride=2))
+        dec4 = self.decoder4(torch.cat([F.interpolate(bottleneck, size=enc4.shape[2:], mode='trilinear', align_corners=False), enc4], dim=1))
+        dec3 = self.decoder3(torch.cat([F.interpolate(dec4, size=enc3.shape[2:], mode='trilinear', align_corners=False), enc3], dim=1))
+        dec2 = self.decoder2(torch.cat([F.interpolate(dec3, size=enc2.shape[2:], mode='trilinear', align_corners=False), enc2], dim=1))
+        dec1 = self.decoder1(torch.cat([F.interpolate(dec2, size=enc1.shape[2:], mode='trilinear', align_corners=False), enc1], dim=1))
+        return self.final_layer(dec1)

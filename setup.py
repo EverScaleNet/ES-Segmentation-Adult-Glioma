@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="glioma_segmentation",
-    version="0.1.2",
+    version="0.2.0",
     description="Segmentation of adult gliomas post-treatment using MONAI and U-Net with PyTorch Lightning and Hydra",
     author="Marcel Musialek",
     author_email="mnem12321@gmail.com",
