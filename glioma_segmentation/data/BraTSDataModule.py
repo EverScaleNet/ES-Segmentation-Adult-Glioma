@@ -17,9 +17,9 @@ class BraTSDataModule(pl.LightningDataModule):
         """
         super().__init__()
         self.cfg = cfg
-        self.data_dir = None
-        self.batch_size = None
-        self.num_workers = None
+        self.data_dir = cfg.data.data_dir
+        self.batch_size = cfg.loader.batch_size
+        self.num_workers = cfg.loader.num_workers
 
     def setup(self, stage=None):
         """
