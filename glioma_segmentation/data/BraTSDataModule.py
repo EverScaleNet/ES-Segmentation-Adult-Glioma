@@ -2,7 +2,7 @@ import os
 import glob
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
-from monai.transforms import LoadImaged, EnsureChannelFirstd, Compose
+from monai.transforms import LoadImaged, EnsureChannelFirstd, Compose, SpatialPadd, ScaleIntensityd
 from monai.data import Dataset
 import hydra
 from omegaconf import DictConfig
@@ -23,7 +23,7 @@ class BraTSDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         """
-        Sets up the data module by loading training and validation data.
+        Sets up the data module by loading training and test data.
 
         Args:
             stage (str, optional): Stage of setup (e.g., 'fit', 'test'). Defaults to None.
@@ -34,9 +34,6 @@ class BraTSDataModule(pl.LightningDataModule):
         
         # Load training patient directories
         train_patient_dirs = sorted(glob.glob(os.path.join(self.data_dir, "training_data", "BraTS-GLI-*")))
-
-        # Load validation patient directories
-        val_patient_dirs = sorted(glob.glob(os.path.join(self.data_dir, "validation_data", "BraTS-GLI-*")))
 
         # Create training data dictionaries
         train_data_dicts = []
@@ -53,35 +50,41 @@ class BraTSDataModule(pl.LightningDataModule):
                 "label": seg_file      # Segmentation file
             })
 
-        # Create validation data dictionaries
-        val_data_dicts = []
-        for patient_dir in val_patient_dirs:
-            seg_file = os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-seg.nii.gz")
-            image_files = [
-                os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t1c.nii.gz"),
-                os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t1n.nii.gz"),
-                os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t2f.nii.gz"),
-                os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t2w.nii.gz")
-            ]
-            val_data_dicts.append({
-                "image": image_files,  # List of modality images
-                "label": seg_file      # Segmentation file
-            })
-
         # Assign data to attributes
         self.train_data = train_data_dicts
-        self.val_data = val_data_dicts
 
-        # Define transformations
+        # Define transformations with padding
         self.train_transforms = Compose([
             LoadImaged(keys=["image", "label"], image_only=False),
-            EnsureChannelFirstd(keys=["image", "label"])
+            EnsureChannelFirstd(keys=["image", "label"]),
+            SpatialPadd(keys=["image", "label"], spatial_size=(182, 218, 182)),  # Adjusted padding to match scan shape
+            ScaleIntensityd(keys=["image"])
+            # Add any additional transformations here
         ])
 
-        self.val_transforms = Compose([
-            LoadImaged(keys=["image", "label"], image_only=False),
-            EnsureChannelFirstd(keys=["image", "label"])
-        ])
+        # Correct the batch size for testing
+        if stage == 'test' or stage is None:
+            test_patient_dirs = sorted(glob.glob(os.path.join(self.data_dir, "test_data", "BraTS-GLI-*")))
+            test_data_dicts = []
+            for patient_dir in test_patient_dirs:
+                image_files = [
+                    os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t1c.nii.gz"),
+                    os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t1n.nii.gz"),
+                    os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t2f.nii.gz"),
+                    os.path.join(patient_dir, f"{os.path.basename(patient_dir)}-t2w.nii.gz")
+                ]
+                test_data_dicts.append({
+                    "image": image_files
+                })
+            self.test_data = test_data_dicts
+
+            self.test_transforms = Compose([
+                LoadImaged(keys=["image"], image_only=False),
+                EnsureChannelFirstd(keys=["image"]),
+                SpatialPadd(keys=["image"], spatial_size=(182, 218, 182)),  # Adjusted padding to match scan shape
+                ScaleIntensityd(keys=["image"])
+                # Add any additional transformations here
+            ])
 
     def train_dataloader(self):
         """
@@ -93,21 +96,12 @@ class BraTSDataModule(pl.LightningDataModule):
         train_dataset = Dataset(data=self.train_data, transform=self.train_transforms)
         return DataLoader(train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
 
-    def val_dataloader(self):
-        """
-        Returns the validation DataLoader.
-
-        Returns:
-            DataLoader: DataLoader for validation data.
-        """
-        val_dataset = Dataset(data=self.val_data, transform=self.val_transforms)
-        return DataLoader(val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False)
-
     def test_dataloader(self):
         """
-        Placeholder for test DataLoader.
+        Returns the test DataLoader.
 
         Returns:
-            None
+            DataLoader: DataLoader for test data.
         """
-        pass
+        test_dataset = Dataset(data=self.test_data, transform=self.test_transforms)
+        return DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False)

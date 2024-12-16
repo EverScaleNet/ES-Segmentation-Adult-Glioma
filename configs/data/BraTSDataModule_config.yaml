@@ -1,5 +1,5 @@
 data:
-  data_dir: "data_sample"
+  data_dir: "data"
 
 loader:
   batch_size: 4
