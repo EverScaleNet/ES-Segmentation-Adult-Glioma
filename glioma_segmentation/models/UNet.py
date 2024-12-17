@@ -5,16 +5,16 @@ import torch.nn.functional as F
 class UNet(nn.Module):
     def __init__(self, in_channels, out_channels=5):  # Set default out_channels to 5
         super(UNet, self).__init__()
-        self.encoder1 = self.conv_block(in_channels, 64)
-        self.encoder2 = self.conv_block(64, 128)
-        self.encoder3 = self.conv_block(128, 256)
-        self.encoder4 = self.conv_block(256, 512)
-        self.bottleneck = self.conv_block(512, 1024)
-        self.decoder4 = self.conv_block(1024 + 512, 512)
-        self.decoder3 = self.conv_block(512 + 256, 256)
-        self.decoder2 = self.conv_block(256 + 128, 128)
-        self.decoder1 = self.conv_block(128 + 64, 64)
-        self.final_layer = nn.Conv3d(64, out_channels, kernel_size=1)
+        self.encoder1 = self.conv_block(in_channels, 32)  # Reduce number of filters
+        self.encoder2 = self.conv_block(32, 64)
+        self.encoder3 = self.conv_block(64, 128)
+        self.encoder4 = self.conv_block(128, 256)
+        self.bottleneck = self.conv_block(256, 512)
+        self.decoder4 = self.conv_block(512 + 256, 256)
+        self.decoder3 = self.conv_block(256 + 128, 128)
+        self.decoder2 = self.conv_block(128 + 64, 64)
+        self.decoder1 = self.conv_block(64 + 32, 32)
+        self.final_layer = nn.Conv3d(32, out_channels, kernel_size=1)
 
     def conv_block(self, in_channels, out_channels):
         return nn.Sequential(

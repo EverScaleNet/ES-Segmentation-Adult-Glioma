@@ -3,7 +3,7 @@ import glob
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from monai.transforms import LoadImaged, EnsureChannelFirstd, Compose, SpatialPadd, ScaleIntensityd
-from monai.data import Dataset
+from monai.data import Dataset, CacheDataset
 import hydra
 from omegaconf import DictConfig
 
@@ -61,6 +61,10 @@ class BraTSDataModule(pl.LightningDataModule):
             ScaleIntensityd(keys=["image"])
         ])
 
+        if stage == 'fit' or stage is None:
+            # No separate validation data, use cross-validation on training data
+            self.val_data = None
+
         if stage == 'test' or stage is None:
             test_patient_dirs = sorted(glob.glob(os.path.join(self.data_dir, "test_data", "BraTS-GLI-*")))
             test_data_dicts = []
@@ -84,6 +88,27 @@ class BraTSDataModule(pl.LightningDataModule):
                 ScaleIntensityd(keys=["image"])
             ])
 
+            self.test_dataset = Dataset(data=self.test_data, transform=self.test_transforms)
+
+        # Use partial caching to balance between speed and memory usage
+        cache_rate = 0.05  # Cache 5% of the dataset
+        print("Creating train dataset with cache rate:", cache_rate)
+        self.train_dataset = CacheDataset(data=self.train_data, transform=self.train_transforms, cache_rate=cache_rate, num_workers=self.num_workers)
+        if self.val_data is not None:
+            print("Creating validation dataset with cache rate:", cache_rate)
+            self.val_dataset = CacheDataset(data=self.val_data, transform=self.train_transforms, cache_rate=cache_rate, num_workers=self.num_workers)
+
+    def set_val_data(self, val_data):
+        """
+        Sets the validation data for cross-validation.
+
+        Args:
+            val_data (list): List of validation data dictionaries.
+        """
+        self.val_data = val_data
+        print("Setting validation data with cache rate: 0.05")
+        self.val_dataset = CacheDataset(data=self.val_data, transform=self.train_transforms, cache_rate=0.05, num_workers=self.num_workers)
+
     def train_dataloader(self):
         """
         Returns the training DataLoader.
@@ -91,13 +116,14 @@ class BraTSDataModule(pl.LightningDataModule):
         Returns:
             DataLoader: DataLoader for training data.
         """
-        train_dataset = Dataset(data=self.train_data, transform=self.train_transforms)
         return DataLoader(
-            train_dataset,
+            self.train_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             shuffle=True,
-            persistent_workers=True
+            persistent_workers=True,
+            pin_memory=True,  # Enable pin_memory for faster data transfer to GPU
+            prefetch_factor=4  # Increase prefetch factor for faster data loading
         )
 
     def val_dataloader(self):
@@ -107,14 +133,18 @@ class BraTSDataModule(pl.LightningDataModule):
         Returns:
             DataLoader: DataLoader for validation data.
         """
-        val_dataset = Dataset(data=self.val_data, transform=self.train_transforms)
-        return DataLoader(
-            val_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            shuffle=False,
-            persistent_workers=True
-        )
+        if self.val_data is not None:
+            return DataLoader(
+                self.val_dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                shuffle=False,
+                persistent_workers=True,
+                pin_memory=True,  # Enable pin_memory for faster data transfer to GPU
+                prefetch_factor=4  # Increase prefetch factor for faster data loading
+            )
+        else:
+            return None
 
     def test_dataloader(self):
         """
@@ -123,11 +153,15 @@ class BraTSDataModule(pl.LightningDataModule):
         Returns:
             DataLoader: DataLoader for test data.
         """
-        test_dataset = Dataset(data=self.test_data, transform=self.test_transforms)
-        return DataLoader(
-            test_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            shuffle=False,
-            persistent_workers=True
-        )
+        if hasattr(self, 'test_dataset'):
+            return DataLoader(
+                self.test_dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                shuffle=False,
+                persistent_workers=True,
+                pin_memory=True,  # Enable pin_memory for faster data transfer to GPU
+                prefetch_factor=4  # Increase prefetch factor for faster data loading
+            )
+        else:
+            return None

@@ -7,6 +7,8 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from sklearn.model_selection import KFold
 import numpy as np
+from pytorch_lightning.loggers import WandbLogger
+import wandb
 
 if __name__ == '__main__':
     # Set float32 matmul precision to utilize Tensor Cores
@@ -21,7 +23,7 @@ if __name__ == '__main__':
     data_module.setup(stage='fit')  # Initialize train_data
 
     # Reduce batch size to reduce memory usage
-    data_module.batch_size = 2
+    data_module.batch_size = 1  # Reduce batch size further
 
     # Get the data and labels
     data = data_module.train_data
@@ -29,6 +31,9 @@ if __name__ == '__main__':
 
     # Initialize KFold
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+    # Initialize the WandbLogger
+    wandb_logger = WandbLogger(project="glioma_segmentation")
 
     for fold, (train_idx, val_idx) in enumerate(kf.split(data, labels)):
         print(f"Fold {fold + 1}")
@@ -39,7 +44,7 @@ if __name__ == '__main__':
 
         # Update the data module with the new splits
         data_module.train_data = train_data
-        data_module.val_data = val_data
+        data_module.set_val_data(val_data)  # Set the validation data
 
         # Define the model
         model = GliomaSegmentationModule(
@@ -47,21 +52,27 @@ if __name__ == '__main__':
             out_channels=5  # Match the number of classes
         )
 
-        # Initialize the trainer with mixed precision training
+        # Initialize the trainer with mixed precision training and WandbLogger
         trainer = pytorch_lightning.Trainer(
             accelerator='gpu' if torch.cuda.is_available() else 'cpu',
             devices=1 if torch.cuda.is_available() else None,
             max_epochs=10,
-            precision='16-mixed',  # Enable mixed precision training
+            precision='16-mixed',  # Ensure mixed precision training is enabled
             enable_checkpointing=True,
             num_sanity_val_steps=1,
             log_every_n_steps=16,
             enable_progress_bar=True,  # Enable progress bar
+            logger=wandb_logger  # Add WandbLogger
         )
 
         # Train the model
+        print("Starting training for fold", fold + 1)
         trainer.fit(
             model,
             train_dataloaders=data_module.train_dataloader(),
             val_dataloaders=data_module.val_dataloader()
         )
+        print("Finished training for fold", fold + 1)
+
+    # Finish the wandb run
+    wandb.finish()

@@ -3,4 +3,4 @@ data:
 
 loader:
   batch_size: 2  # Reduced batch size to reduce memory usage
-  num_workers: 15  # Increased number of workers to speed up data loading
+  num_workers: 10  # Increased number of workers to speed up data loading
