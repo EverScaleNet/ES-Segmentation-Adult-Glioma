@@ -8,6 +8,7 @@ from omegaconf import DictConfig, OmegaConf
 from sklearn.model_selection import KFold
 import numpy as np
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
 import wandb
 
 if __name__ == '__main__':
@@ -52,7 +53,16 @@ if __name__ == '__main__':
             out_channels=5  # Match the number of classes
         )
 
-        # Initialize the trainer with mixed precision training and WandbLogger
+        # Define the checkpoint callback to save the best model
+        checkpoint_callback = ModelCheckpoint(
+            monitor='val_loss',
+            dirpath='trained_models',
+            filename=f'model_fold_{fold + 1}_best',
+            save_top_k=1,
+            mode='min'
+        )
+
+        # Initialize the trainer with mixed precision training, WandbLogger, and checkpoint callback
         trainer = pytorch_lightning.Trainer(
             accelerator='gpu' if torch.cuda.is_available() else 'cpu',
             devices=1 if torch.cuda.is_available() else None,
@@ -62,7 +72,8 @@ if __name__ == '__main__':
             num_sanity_val_steps=1,
             log_every_n_steps=16,
             enable_progress_bar=True,  # Enable progress bar
-            logger=wandb_logger  # Add WandbLogger
+            logger=wandb_logger,  # Add WandbLogger
+            callbacks=[checkpoint_callback]  # Add checkpoint callback
         )
 
         # Train the model
