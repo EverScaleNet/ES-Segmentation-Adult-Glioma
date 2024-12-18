@@ -1,7 +1,12 @@
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
+import logging
 from glioma_segmentation.models.UNet import UNet
+
+# Configure logger
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class GliomaSegmentationModule(pl.LightningModule):
     def __init__(self, in_channels, out_channels, learning_rate=1e-3):
@@ -16,34 +21,34 @@ class GliomaSegmentationModule(pl.LightningModule):
         images, labels = batch["image"], batch["label"]
         outputs = self(images)
         labels = labels.squeeze(1).long()  # Squeeze the channel dimension and convert to Long
+        
+        # Log unique labels and min/max output values
+        logger.debug(f"Train Step {batch_idx} - Unique Labels: {torch.unique(labels).tolist()}")
+        logger.debug(f"Train Step {batch_idx} - Outputs Min: {outputs.min().item()}, Max: {outputs.max().item()}")
+
         loss = F.cross_entropy(outputs, labels)
         self.log("train_loss", loss, batch_size=images.size(0))
-        
-        # Log the maximum and minimum values of the loss
-        self.log("train_loss_max", torch.max(loss), batch_size=images.size(0))
-        self.log("train_loss_min", torch.min(loss), batch_size=images.size(0))
-        
-        # Check for NaN values in the loss
-        if torch.isnan(loss):
-            print("NaN detected in training loss")
-        
+
+        # Log diagnostic loss information
+        logger.debug(f"Train Step {batch_idx} - Loss: {loss.item()}")
+
         return loss
 
     def validation_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
         outputs = self(images)
         labels = labels.squeeze(1).long()  # Squeeze the channel dimension and convert to Long
+        
+        # Log unique labels and min/max output values
+        logger.debug(f"Val Step {batch_idx} - Unique Labels: {torch.unique(labels).tolist()}")
+        logger.debug(f"Val Step {batch_idx} - Outputs Min: {outputs.min().item()}, Max: {outputs.max().item()}")
+
         loss = F.cross_entropy(outputs, labels)
         self.log("val_loss", loss, batch_size=images.size(0))
-        
-        # Log the maximum and minimum values of the loss
-        self.log("val_loss_max", torch.max(loss), batch_size=images.size(0))
-        self.log("val_loss_min", torch.min(loss), batch_size=images.size(0))
-        
-        # Check for NaN values in the loss
-        if torch.isnan(loss):
-            print("NaN detected in validation loss")
-        
+
+        # Log diagnostic loss information
+        logger.debug(f"Val Step {batch_idx} - Loss: {loss.item()}")
+
         return loss
 
     def configure_optimizers(self):
@@ -53,3 +58,9 @@ class GliomaSegmentationModule(pl.LightningModule):
     def configure_gradient_clipping(self, optimizer, optimizer_idx):
         # Clip gradients to prevent gradient explosion
         self.clip_gradients(optimizer, gradient_clip_val=1.0)
+
+    def on_train_epoch_start(self):
+        logger.info("Starting a new training epoch...")
+
+    def on_validation_epoch_start(self):
+        logger.info("Starting a new validation epoch...")
