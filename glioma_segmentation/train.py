@@ -53,13 +53,13 @@ if __name__ == '__main__':
             out_channels=5  # Match the number of classes
         )
 
-        # Define the checkpoint callback to save the best model
+        # Define the checkpoint callback to save the best model based on validation accuracy
         checkpoint_callback = ModelCheckpoint(
-            monitor='val_loss',
+            monitor='val_acc',
             dirpath='trained_models',
             filename=f'model_fold_{fold + 1}_best',
             save_top_k=1,
-            mode='min'
+            mode='max'  # Save the model with the highest validation accuracy
         )
 
         # Initialize the trainer with mixed precision training, WandbLogger, and checkpoint callback
