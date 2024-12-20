@@ -2,7 +2,7 @@ import os
 import glob
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
-from monai.transforms import LoadImaged, EnsureChannelFirstd, Compose, SpatialPadd, ScaleIntensityd
+from monai.transforms import LoadImaged, EnsureChannelFirstd, Compose, SpatialPadd, ScaleIntensityd, ToTensord
 from monai.data import Dataset, CacheDataset
 import hydra
 from omegaconf import DictConfig
@@ -58,7 +58,8 @@ class BraTSDataModule(pl.LightningDataModule):
             LoadImaged(keys=["image", "label"]),
             EnsureChannelFirstd(keys=["image", "label"]),
             SpatialPadd(keys=["image", "label"], spatial_size=(182, 218, 182)),
-            ScaleIntensityd(keys=["image"])
+            ScaleIntensityd(keys=["image"]),
+            ToTensord(keys=["image", "label"])
         ])
 
         if stage == 'fit' or stage is None:

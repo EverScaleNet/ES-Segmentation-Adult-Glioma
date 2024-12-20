@@ -8,7 +8,7 @@ from omegaconf import DictConfig, OmegaConf
 from sklearn.model_selection import KFold
 import numpy as np
 from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, EarlyStopping, StochasticWeightAveraging
 import wandb
 
 if __name__ == '__main__':
@@ -35,6 +35,9 @@ if __name__ == '__main__':
 
     # Initialize the WandbLogger
     wandb_logger = WandbLogger(project="glioma_segmentation")
+
+    # Add Stochastic Weight Averaging callback
+    swa_callback = StochasticWeightAveraging(swa_lrs=1e-2)
 
     for fold, (train_idx, val_idx) in enumerate(kf.split(data, labels)):
         print(f"Fold {fold + 1}")
@@ -85,7 +88,7 @@ if __name__ == '__main__':
             enable_progress_bar=True,  # Enable progress bar
             logger=wandb_logger,  # Add WandbLogger
             gradient_clip_val=0.5,  # Add gradient clipping
-            callbacks=[checkpoint_callback, lr_monitor, early_stopping_callback]  # Add early stopping callback
+            callbacks=[checkpoint_callback, lr_monitor, early_stopping_callback, swa_callback]  # Add SWA callback
         )
 
         # Train the model

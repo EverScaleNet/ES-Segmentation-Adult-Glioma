@@ -1,0 +1,32 @@
+{
+  "os": "Windows-11-10.0.26100-SP0",
+  "python": "3.12.5",
+  "startedAt": "2024-12-20T22:01:23.586840Z",
+  "program": "D:\\.programowanie\\ES-Segmentation-Adult-Glioma\\glioma_segmentation\\train.py",
+  "codePath": "glioma_segmentation\\train.py",
+  "git": {
+    "remote": "https://github.com/EverScaleNet/ES-Segmentation-Adult-Glioma.git",
+    "commit": "8c850b4179973c71c465cca2d3917cbb19598f1d"
+  },
+  "email": "mnem12321@gmail.com",
+  "root": ".",
+  "host": "DESKTOP-V46L70L",
+  "username": "Marcel",
+  "executable": "c:\\Users\\Marcel\\.conda\\envs\\glioma-segmentation\\python.exe",
+  "codePathLocal": "glioma_segmentation\\train.py",
+  "cpu_count": 20,
+  "cpu_count_logical": 28,
+  "disk": {
+    "/": {
+      "total": "1468006395904",
+      "used": "635427799040"
+    }
+  },
+  "memory": {
+    "total": "68447989760"
+  },
+  "cpu": {
+    "count": 20,
+    "countLogical": 28
+  }
+}
