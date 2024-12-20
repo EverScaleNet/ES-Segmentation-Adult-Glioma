@@ -6,11 +6,11 @@ from glioma_segmentation.models.UNet import UNet
 from torch.nn import Dropout
 
 # Configure logger
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)  # Set to INFO to reduce verbosity
 logger = logging.getLogger(__name__)
 
 class GliomaSegmentationModule(pl.LightningModule):
-    def __init__(self, in_channels, out_channels, learning_rate=1e-3, dropout_rate=0.5):
+    def __init__(self, in_channels, out_channels, learning_rate=1e-3, dropout_rate=0.6):
         super(GliomaSegmentationModule, self).__init__()
         self.model = UNet(in_channels, out_channels)
         self.learning_rate = learning_rate
@@ -66,11 +66,14 @@ class GliomaSegmentationModule(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=1e-5)
-        return optimizer
-
-    def configure_gradient_clipping(self, optimizer, optimizer_idx):
-        # Clip gradients to prevent gradient explosion
-        self.clip_gradients(optimizer, gradient_clip_val=1.0)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=2, verbose=True)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_acc'
+            }
+        }
 
     def on_train_epoch_start(self):
         logger.info("Starting a new training epoch...")

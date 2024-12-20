@@ -8,7 +8,7 @@ from omegaconf import DictConfig, OmegaConf
 from sklearn.model_selection import KFold
 import numpy as np
 from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, EarlyStopping
 import wandb
 
 if __name__ == '__main__':
@@ -62,7 +62,18 @@ if __name__ == '__main__':
             mode='max'  # Save the model with the highest validation accuracy
         )
 
-        # Initialize the trainer with mixed precision training, WandbLogger, and checkpoint callback
+        # Define the learning rate monitor callback
+        lr_monitor = LearningRateMonitor(logging_interval='epoch')
+
+        # Define the early stopping callback
+        early_stopping_callback = EarlyStopping(
+            monitor='val_loss',
+            patience=3,
+            verbose=True,
+            mode='min'
+        )
+
+        # Initialize the trainer with mixed precision training, WandbLogger, and callbacks
         trainer = pytorch_lightning.Trainer(
             accelerator='gpu' if torch.cuda.is_available() else 'cpu',
             devices=1 if torch.cuda.is_available() else None,
@@ -73,7 +84,8 @@ if __name__ == '__main__':
             log_every_n_steps=16,
             enable_progress_bar=True,  # Enable progress bar
             logger=wandb_logger,  # Add WandbLogger
-            callbacks=[checkpoint_callback]  # Add checkpoint callback
+            gradient_clip_val=0.5,  # Add gradient clipping
+            callbacks=[checkpoint_callback, lr_monitor, early_stopping_callback]  # Add early stopping callback
         )
 
         # Train the model
